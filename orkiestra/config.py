@@ -126,12 +126,14 @@ def _convert(section: str, key: str, value: Any) -> Any:
         if isinstance(value, bool) or not isinstance(value, int) or value < 1:
             raise ConfigError(f"{where} musi być liczbą całkowitą >= 1")
         return value
-    if isinstance(value, str) or isinstance(value, bool):
-        if pair in _CHOICES and value not in _CHOICES[pair]:
-            options = ", ".join(_CHOICES[pair])
-            raise ConfigError(f"{where} musi być jedną z wartości: {options}")
-        return value
-    raise ConfigError(f"{where} ma nieprawidłowy typ")
+    expected = type(getattr(_SECTIONS[section](), key))
+    if type(value) is not expected:
+        label = "tekstem" if expected is str else "wartością true/false"
+        raise ConfigError(f"{where} musi być {label}")
+    if pair in _CHOICES and value not in _CHOICES[pair]:
+        options = ", ".join(_CHOICES[pair])
+        raise ConfigError(f"{where} musi być jedną z wartości: {options}")
+    return value
 
 
 def _convert_cmd(where: str, value: Any) -> tuple[str, ...]:
