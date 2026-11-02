@@ -221,7 +221,10 @@ def run_agent(
             "pusty wynik agy: brak uprawnień (soft-deny) albo błąd TTY – "
             "ustaw agent.use_pty = true"
         )
-    quota, reset = detect_quota(exit_code, f"{stdout}\n{stderr}\n{error}")
+    # A failed call that exits 0 (e.g. JSON status ERROR) must still be recognised as quota.
+    quota, reset = detect_quota(
+        exit_code or (0 if ok else 1), f"{stdout}\n{stderr}\n{error}"
+    )
     duration = time.monotonic() - start
     _write_log(log_path, args, prompt, exit_code, duration, stdout, stderr)
     if exit_code != 0 and not error:

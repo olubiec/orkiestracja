@@ -146,3 +146,23 @@ def test_pty_edit(tmp_path):
     res = run(tmp_path, cfg(use_pty=True))
     assert res.ok
     assert (tmp_path / "a" / "b.txt").exists()
+
+
+def test_quota_detected_when_exit_zero_but_status_error(tmp_path, monkeypatch):
+    import json
+    import subprocess
+    from types import SimpleNamespace
+
+    from orkiestra import agent
+    from orkiestra.models import AgentConfig
+
+    payload = json.dumps(
+        {"status": "ERROR", "response": "", "error": "RESOURCE_EXHAUSTED: resets in 2 hours"}
+    )
+    monkeypatch.setattr(
+        subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=0, stdout=payload, stderr="")
+    )
+    res = agent.run_agent(
+        "p", tmp_path, AgentConfig(), model=None, timeout_minutes=1, log_path=tmp_path / "l.log"
+    )
+    assert res.quota_exhausted and res.quota_reset_seconds == 7200
